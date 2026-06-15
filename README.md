@@ -38,11 +38,10 @@ Scrapes all products from [brokenplanet.com](https://www.brokenplanet.com), extr
 
 - Python 3.11+
 - Supabase project (URL + service role key)
-- HuggingFace API token (free tier is sufficient)
 
 ## Setup
 
-1. **Clone the repo** (already done):
+1. **Clone the repo**:
    ```bash
    cd scraper-brokenplanet
    ```
@@ -61,7 +60,7 @@ Scrapes all products from [brokenplanet.com](https://www.brokenplanet.com), extr
 4. **Configure environment**:
    ```bash
    cp .env.example .env
-   # Edit .env with your HF_TOKEN
+   # Edit .env with your SUPABASE_URL and SUPABASE_KEY
    ```
 
 5. **Run locally**:
@@ -79,7 +78,6 @@ The workflow runs **every Monday at 11:30 UTC** and supports manual trigger via 
 |---|---|
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_KEY` | Supabase service role key |
-| `HF_TOKEN` | HuggingFace API token |
 
 Set these in **GitHub → Settings → Secrets and variables → Actions**.
 
@@ -99,26 +97,23 @@ This matches the hover-behavior described in the brand brief.
 
 ## Embedding Pipeline
 
+Both image and text embeddings are generated **locally** using the
+`google/siglip-base-patch16-384` model via HuggingFace ``transformers``
++ ``torch`` — no external API calls, no API keys needed.
+
 ### Image Embeddings (`image_embedding`, `back_image_embedding`)
 1. Download image from URL
 2. Decode to RGB
 3. Resize longest side to max 1280px (preserve aspect ratio)
-4. Encode as JPEG quality ~85
-5. Base64 not needed — HF Inference API accepts raw JPEG bytes
-6. POST to `google/siglip-base-patch16-384`
-7. Parse 768-d response, average if batch format
-8. L2-normalize
-9. Set `embedding_version = 2`
+4. Run through SigLIP vision encoder
+5. L2-normalize 768-d vector
+6. Set `embedding_version = 2`
 
 ### Text Embeddings (`info_embedding`)
 1. Concatenate title, description, category, gender, price, sale, metadata
-2. POST to `BAAI/bge-base-en-v1.5`
+2. Run through SigLIP text encoder
 3. L2-normalize 768-d vector
 4. Store in `info_embedding`
-
-### Rate Limiting
-- 0.5-second delay between consecutive HuggingFace API calls
-- 0.5-second delay between store page requests
 
 ## Database Schema
 

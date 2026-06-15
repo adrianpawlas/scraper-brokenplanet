@@ -45,25 +45,11 @@ class Config:
     SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
     BATCH_SIZE: int = int(os.environ.get("BATCH_SIZE", "50"))
 
-    # ── HuggingFace (image embeddings) ─────────────────────────────────
-    HF_TOKEN: str = os.environ.get("HF_TOKEN", "")
-    HF_IMAGE_MODEL: str = "google/siglip-base-patch16-384"
-    HF_IMAGE_API_URL: str = (
-        "https://api-inference.huggingface.co/models/google/siglip-base-patch16-384"
-    )
-
-    # ── Text Embeddings (info_embedding) ──────────────────────────────
-    # Using BAAI/bge-base-en-v1.5 (768-d, available on free HF Inference API)
-    HF_TEXT_MODEL: str = "BAAI/bge-base-en-v1.5"
-    HF_TEXT_API_URL: str = (
-        "https://api-inference.huggingface.co/models/BAAI/bge-base-en-v1.5"
-    )
-
-    # ── Embedding Version ──────────────────────────────────────────────
+    # ── Embedding Model ────────────────────────────────────────────────
+    EMBEDDING_MODEL: str = "google/siglip-base-patch16-384"
+    EMBEDDING_DIM: int = 768
     EMBEDDING_VERSION: int = 2
-
-    # ── Rate Limiting ──────────────────────────────────────────────────
-    HF_CALL_DELAY: float = 0.5  # seconds between consecutive HF API calls
+    EMBEDDING_BATCH_SIZE: int = 8  # images/texts to embed in one batch
 
     # ── Image Preprocessing ────────────────────────────────────────────
     IMAGE_MAX_LONGEST_SIDE: int = 1280  # resize longest side to this
@@ -87,15 +73,8 @@ class Config:
             missing.append("SUPABASE_URL")
         if not cls.SUPABASE_KEY:
             missing.append("SUPABASE_KEY")
-        if not cls.HF_TOKEN:
-            missing.append("HF_TOKEN (HuggingFace API token)")
         if missing:
             raise RuntimeError(
                 f"Missing required environment variables: {', '.join(missing)}. "
                 "See .env.example for all required variables."
             )
-
-    @classmethod
-    def hf_headers(cls) -> dict:
-        """Return authorization headers for HuggingFace API calls."""
-        return {"Authorization": f"Bearer {cls.HF_TOKEN}"}
