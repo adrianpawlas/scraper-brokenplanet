@@ -22,7 +22,6 @@ from scraper.config import Config
 from scraper.embeddings import (
     generate_image_embedding,
     generate_text_embedding,
-    get_embedding_version,
 )
 
 logger = logging.getLogger(__name__)
@@ -242,7 +241,6 @@ def process_product(
         vec = generate_image_embedding(row["image_url"])
         if vec is not None:
             final_row["image_embedding"] = vec.tolist()
-            final_row["embedding_version"] = get_embedding_version()
             front_embed = True
         else:
             logger.warning("  Front image embedding failed for %s", product_url)
@@ -259,10 +257,6 @@ def process_product(
     elif back_url_changed and not row.get("back_image_url"):
         # Back image removed – set columns to NULL
         final_row["back_image_embedding"] = None
-
-    # Set embedding_version only when front image embedding was written
-    if front_embed:
-        final_row["embedding_version"] = get_embedding_version()
 
     # Text embedding (info_embedding) – for hybrid search
     if info_text_changed:
@@ -325,9 +319,9 @@ def upsert_batch(rows: list[dict]) -> int:
         clean = {}
         for k, v in row.items():
             if k in ("image_embedding", "back_image_embedding",
-                     "info_embedding", "embedding_version"):
-                # Always include vector/embedding_version fields so that
-                # explicit None values are sent to clear the column.
+                     "info_embedding"):
+                # Always include vector fields so that explicit None
+                # values are sent to clear the column.
                 clean[k] = v
             else:
                 clean[k] = v
