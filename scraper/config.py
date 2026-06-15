@@ -2,11 +2,23 @@
 Configuration module for the Broken Planet scraper.
 
 All configuration is loaded from environment variables at runtime.
+
+Automatically loads a ``.env`` file from the project root via
+``python-dotenv`` when running locally.
 """
 
 import os
 from pathlib import Path
 from typing import Optional
+
+try:
+    from dotenv import load_dotenv
+
+    # Load .env from the project root (parent of the scraper/ package)
+    _project_root = Path(__file__).resolve().parent.parent
+    load_dotenv(_project_root / ".env")
+except ImportError:
+    pass  # python-dotenv not installed; rely on env vars being set
 
 
 class Config:
