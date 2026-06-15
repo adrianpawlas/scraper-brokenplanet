@@ -1,0 +1,63 @@
+name: Broken Planet Scraper
+
+on:
+  schedule:
+    # Every Monday at 11:30 UTC
+    - cron: '30 11 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (skip DB upsert)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  CI: 'true'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        id: scrape
+        run: |
+          python -m scraper.main 2>&1
+        continue-on-error: true
+
+      - name: Upload failed products log (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-products-log
+          path: scraper/logs/failed_products.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Check scrape status
+        if: steps.scrape.outcome != 'success'
+        run: |
+          echo "::warning::Scraper run completed with errors. Check the failed-products-log artifact for details."
+          exit 0
